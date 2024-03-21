@@ -9,5 +9,8 @@
             "src": "/(.*)",
             "dest": "hrdp/wsgi.py"
         }
+    ],
+    "rewrites": [
+        {"source": "/(.*)", "destination": "/"}
     ]
 }
