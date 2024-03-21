@@ -28,7 +28,7 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 SECRET_KEY = 'django-insecure-_nx3(&jli1$lm6p3l1(1zu*tem@*_+7n2c@xgvr50q%+=y(x7!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
+DEBUG = True
 
 ALLOWED_HOSTS = ['.vercel.app']
 
