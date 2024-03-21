@@ -1,0 +1,791 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Hypertension Risk Prediction</title>
+    {% load static %}
+    <link rel="stylesheet" href="static/stylesheets/styles.css">
+    {% load static %}
+    <link rel="stylesheet" href="static/stylesheets/pygment_trac.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+    </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Hypertension&nbsp;Risk <br>Prediction<br><small><i>using Machine Learning Models</i></small></h1>
+        <br>
+        <br>
+        <div>
+        <div>
+            <a id="Dashboard_link" href="#">Dashboard</a> |
+            <a id="Form_link" href="#">Form</a>  |
+            <a id="Results_link" href="#" class="inactiveLink">Results</a> |
+            <a id="logout_user" href="{% url 'Logout' %}">Logout</a>
+        </div>
+        </div>
+        <br>
+      </header>
+
+      <section id="Form_content">
+        <h1>Form</h1>
+        <div>
+            <form id="report" action="process" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <small><i>Upload your relevant medical report or enter manually</i></small><br><br>
+                {{report_form.file}}
+                &nbsp;&nbsp;&nbsp;<button id="predict-button" name="upload" type="submit">Autofill</button>
+            </form>
+        </div>
+        <br>
+        <br>
+        <div>
+            <button id="toggleHypertensionButton" onclick="toggleHypertension()">-</button><nobr><hr></nobr>
+            <form id="hrp-form" style="display: block;" action="process" method="POST">
+                {% csrf_token %}
+                <table>
+                    <tr>
+                    <td><label for"fname">First Name</label>
+                    <input type="text" style="cursor: not-allowed;" name="Fname" placeholder="First Name" value="{{request.user}}" readonly></td>
+                    </tr>
+                    <tr>
+                    <td><label for"age">Please Enter you Age</label>
+                    <input type="number" id="age" name="Age" placeholder="Age (11-98)" min="11" max="98"></td>
+                    <td><label for"sex">What is you Gender?</label>
+                    <input type="text" id="gender" name="Sex" placeholder="Gender"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"cp">What is your level of chest pain felt? <div class="tooltip">(info)<span class="tooltiptext"> O for typical
+                            angina<br>1 for atypical angina<br>2 for non-anginal pain<br>3 for asymptomatic </span></div></label></td>
+                        <td><input type="number" id="cp" name="cp" placeholder="Cerebral Palsy (0-3)" min="0" max="3"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"fbs">What is your Blood Sugar while Fasting? <div class="tooltip">(info)<span class="tooltiptext"> 1 signifying levels above 120 mg/dL<br>0 indicating levels below </span></div></label></td>
+                        <td><input type="number" id="fbs" name="fbs" placeholder="FBS (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"chol">What is your Cholestrol level?</label></td>
+                        <td><input type="number" id="chol" name="chol" placeholder="Cholestrol (125-570)" min="125" max="570"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"trestbps">What is the Rise in your Blood Pressure? <div class="tooltip">(info)<span class="tooltiptext"> Numerical measurement of the patient's blood pressure <br>at rest, recorded in mm/HG</span></div></label></td>
+                        <td><input type="number" id="trestbps" name="trestbps" placeholder="Trest-BPS (94-200)" min="94" max="200"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"restecg">What is your Electro-Cardiograph while Resting? <div class="tooltip">(info)<span class="tooltiptext"> O for normal<br>1 for ST-T wave abnormalities<br>2 for indications of probable or definite left ventricular<br>
+                            hypertrophy according to Estes' criteria </span></div></label></td>
+                        <td><input type="number" id="restecg" name="restecg" placeholder="Rest-ECG (0-2)" min="0" max="2"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"thalach">What is your Heart Rate?</label></td>
+                        <td><input type="number" id="thalach" name="thalach" placeholder="Heart Rate (71-202)" min="71" max="202"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"exang">What is the value of Exercise Induced Angina? <div class="tooltip">(info)<span class="tooltiptext"> Categorical feature denoting whether<br>exercise-induced angina is present.<br>O signifies no<br>1
+                            signifies yes </span></div></label></td>
+                        <td><input type="number" id="exang" name="exang" placeholder="Exang (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"oldpeak">What is your Depression caused by activity?<div class="tooltip">(info)<span class="tooltiptext"> Numeric value indicating exercise-induced<br>ST-depression relative to the rest state. </span></div></label></td>
+                        <td><input type="number" step="0.1" id="oldpeak" name="oldpeak" placeholder="Old Peak Value (0.0 - 6.2)" min="0.0" max="6.2"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"slope">What is the Slope of your ST segment during peak exercise? <div class="tooltip">(info)<span class="tooltiptext"> Categorical attribute representing the slope<br>of the ST segment during peak exercise<br>O for up-sloping<br>1 for flat<br>2 for down-sloping </span></div></label></td>
+                        <td><input type="number" id="slope" name="slope" placeholder="Slope (0-2)" min="0" max="2"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"ca">What are Calcium Levels? <div class="tooltip">(info)<span class="tooltiptext"> Calcium levels in your major blood vessels </span></div></label></td>
+                        <td><input type="number" id="ca" name="ca" placeholder="Calcium Level (0-4)" min="0" max="4"></td>
+                    </tr>
+                    
+                    <tr>
+                        <td><label for"thal">Enter your Blood Disorder that reduces production of hemoglobin? <div class="tooltip">(info)<span class="tooltiptext"> O for NULL<br>1 for normal blood flow<br>2 for fixed defects (indicating no blood flow<br>in a portion of the heart)<br>3 for reversible
+                            defects (indicating abnormal<br>but observable blood flow).<br>4 for hyper </span></div> </label></td>
+                        <td><input type="number" id="thal" name="thal" placeholder="Thal (0-4)" min="0" max="4"></td>
+                    </tr>
+
+                    <td><br><br><button id="predict-button" name="hypertensionBtn" type="submit">Predict Hypertension</button></td>
+                    
+                </table>
+            </form>
+            <button id="toggleStrokeButton" onclick="toggleStroke()">+</button><hr>
+            <form id="hrp-form-s" style="display: none;" action="process" method="POST">
+                {% csrf_token %}
+                <table>
+                    <tr>
+                        <td><label for"fname">First Name</label></td>
+                        <td><input type="text" style="cursor: not-allowed;" name="Fname" placeholder="First Name" value="{{request.user}}" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><label for"heartdisease">Did you ever have any Heart <br>Related Disease? <div class="tooltip">(info)<span class="tooltiptext"> Coronary Heart Disease (CHD) or<br>Myocardial infraction (MI)<br>0 for No<br>1 for Yes </span></div> </label></td>
+                        <td><input type="number" id="heartdisease" name="heartdisease" placeholder="Heart Disease (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"married">Are you now or in past Married? </td>
+                        <td><input type="number" id="married" name="married" placeholder="Married (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"worktype">What is your Work Type? <div class="tooltip">(info)<span class="tooltiptext">0 for Government Job<br>1 for Never Worked<br>2 for Private job<br>3 for Self-employed<br>4 if you are a student</span></div></label></td>
+                        <td><input type="number" id="worktype" name="worktype" placeholder="Work Type (0-4)" min="0" max="4"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"residencytype">What is your Residency Type? <div class="tooltip">(info)<span class="tooltiptext">0 for Rural<br>1 for Urban</span></div></label></td>
+                        <td><input type="number" id="residencytype" name="residencytype" placeholder="Residency Type (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"glucose">What is your average glucose level? </td>
+                        <td><input type="number" step="0.1" id="glucose" name="glucose" placeholder="Glucose Level (55-272)" min="55" max="272"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"bmi">What is your Body Mass Index? </label></td>
+                        <td><input type="number" step="0.1" id="bmi" name="bmi" placeholder="BMI (11-92)" min="11" max="92"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"smoking">What is your Smoking Status? </label></td>
+                        <td><input type="number" id="smoking" name="smoking" placeholder="Smoking Status (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><br><br><button id="predict-button" name="strokeBtn" type="submit">Predict Stroke</button></td>
+                    </tr>
+                </table>
+            </form>
+            <button id="toggleDiabetesButton" onclick="toggleDiabetes()">+</button><hr>
+            <form id="hrp-form-d" style="display: none;" action="process" method="POST">
+                {% csrf_token %}
+                <table>
+                    <tr>
+                        <td><label for"fname">First Name</label></td>
+                        <td><input type="text" style="cursor: not-allowed;" name="Fname" placeholder="First Name" value="{{request.user}}" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><label for"highchol">Do you think you have High Cholestrol? </label></td>
+                        <td><input type="number" id="highchol" name="highchol" placeholder="High Cholestrol (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"cholcheck">When did you last check your <br>Cholestrol? <div class="tooltip">(info)<span class="tooltiptext">0 for No Cholestrol check in<br>last 5 years<br>1 for Yes, Cholestrol check in<br>last 5 years</span></div></label></td>
+                        <td><input type="number" id="cholcheck" name="cholcheck" placeholder="Cholestrol Check (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"physactivity">Have you done any physical activity in <br>last 30 days? <div class="tooltip">(info)<span class="tooltiptext">Now thinking about your physical health,<br>which includes physical illness and injury, <br>for how many days during the <br>past 30 days was your physical
+                            <br>health not good? scale <br>1-30 days</span></div></label></td>
+                        <td><input type="number" id="physactivity" name="physactivity" placeholder="Physical Activity (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"fruits">Do you consume fruits 1 or <br>more times per day? <div class="tooltip">(info)<span class="tooltiptext">0 for No<br>1 for Yes</span></div></label></td>
+                        <td><input type="number" id="fruits" name="fruits" placeholder="Fruits (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"veggies">Do you consume vegetables 1 or <br>more times per day? <div class="tooltip">(info)<span class="tooltiptext">0 for No<br>1 for Yes</span></div></label></td>
+                        <td><input type="number" id="veggies" name="veggies" placeholder="Vegetables (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"alcohol">Do you think you are a heavy drinker?<div class="tooltip">(info)<span class="tooltiptext">Heavy drinkers (adult men having<br>more than 14 drinks per<br>week and adult women having<br>more than 7 drinks per week)</span></div></label></td>
+                        <td><input type="number" id="alcohol" name="alcohol" placeholder="Alcohol (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"genhealth">How much do you rate yourself in terms of health?<div class="tooltip">(info)<span class="tooltiptext">1 = excellent<br>2 = very good<br>3 = good<br>4 = fair<br>5 = poor</span></div></label></label></td>
+                        <td><input type="number" id="genhealth" name="genhealth" placeholder="Health (1-5)" min="1" max="5"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"menhealth">How many days in the last <br>30 days was your mental <br>health not good?<div class="tooltip">(info)<span class="tooltiptext">Think on this based on stress, <br>depression, and problems with <br>emotions</span></div></label></td>
+                        <td><input type="number" id="menhealth" name="menhealth" placeholder="No. of days (0-30)" min="0" max="30"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"phyhealth">How many days in the last <br>30 days was your Physical <br>health not good?<div class="tooltip">(info)<span class="tooltiptext">Think on this based on physical <br>illness, injury</span></div></label></td>
+                        <td><input type="number" id="phyhealth" name="phyhealth" placeholder="No. of days (0-30)" min="0" max="30"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"diffwalk">Do you any serious difficulty walking<br>or climbing stairs?</label></td>
+                        <td><input type="number" id="diffwalk" name="diffwalk" placeholder="Yes/No (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><label for"highBp">Do you have high blood pressure?</label></td>
+                        <td><input type="number" id="highBp" name="highBp" placeholder="Yes/No (0/1)" min="0" max="1"></td>
+                    </tr>
+                    <tr>
+                        <td><br><br><button id="predict-button" name="diabetesBtn" type="submit">Predict Diabetes</button></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+      </section>
+
+      <section id="Dashboard_content">
+        <h1>Dashboard</h1>
+
+        <p align="justify">Utilizing Mapbox data visualization, our hypertension dashboard offers a comprehensive view of high-risk areas for hypertension in California over the past year. By overlaying geographical information with reported cases, we provide stakeholders with a dynamic tool to identify and address regions most affected by hypertension. This interactive dashboard not only highlights areas of concern but also empowers decision-makers to allocate resources efficiently, implement targeted interventions, and ultimately improve public health outcomes in California.</p>
+
+        <div id='map' style='width: 600px; height: 500px;'></div>
+        <script>
+            mapboxgl.accessToken = 'pk.eyJ1Ijoic2FtYXJ0aC1oYWx5YWwiLCJhIjoiY2xzbzJweGwwMGFlbzJqcDdsZDZqYzVieSJ9.D4y1vzj-_g8b5tEYtcnmFw';
+            var map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/samarth-halyal/clssc62gj001a01r5h9nbauwp',
+                zoom: 4.5,
+                center: [-118.829648, 35.724691]
+            });
+        </script>
+        <br>
+        <br>
+        <br>
+        <h3><b><i>Visualization of Mortality rates by Country</i></b></h3>
+        <p align="justify">Please select any or all of the checkboxes below to display corresponding country-related data of total deaths due to hypertension risk over the years on the visualization chart. By choosing specific countries, you can examine the evolving trends in hypertension-related mortality rates, identify areas of concern, and tailor interventions to address these critical health challenges effectively.</p>
+        <table>
+            <tr>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="africa">
+                        <label for="c1-13">African Region</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="australia">
+                        <label for="c1-13">Australia</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="china">
+                        <label for="c1-13">China</label>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="egypt">
+                        <label for="c1-13">Egypt</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="england">
+                        <label for="c1-13">England</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="france">
+                        <label for="c1-13">France</label>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="india">
+                        <label for="c1-13">India</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="ukraine">
+                        <label for="c1-13">Ukraine</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="checkbox-wrapper-13">
+                        <input id="c1-13" type="checkbox" class="united_states" checked>
+                        <label for="c1-13">United States</label>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <br>
+          
+        <style>
+        @supports (-webkit-appearance: none) or (-moz-appearance: none) {
+            .checkbox-wrapper-13 input[type=checkbox] {
+            --active: #275EFE;
+            --active-inner: #fff;
+            --focus: 2px rgba(39, 94, 254, .3);
+            --border: #BBC1E1;
+            --border-hover: #275EFE;
+            --background: #fff;
+            --disabled: #F6F8FF;
+            --disabled-inner: #E1E6F9;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            height: 21px;
+            outline: none;
+            display: inline-block;
+            vertical-align: top;
+            position: relative;
+            margin: 0;
+            cursor: pointer;
+            border: 1px solid var(--bc, var(--border));
+            background: var(--b, var(--background));
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:after {
+            content: "";
+            display: block;
+            left: 0;
+            top: 0;
+            position: absolute;
+            transition: transform var(--d-t, 0.3s) var(--d-t-e, ease), opacity var(--d-o, 0.2s);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:checked {
+            --b: var(--active);
+            --bc: var(--active);
+            --d-o: .3s;
+            --d-t: .6s;
+            --d-t-e: cubic-bezier(.2, .85, .32, 1.2);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:disabled {
+            --b: var(--disabled);
+            cursor: not-allowed;
+            opacity: 0.9;
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:disabled:checked {
+            --b: var(--disabled-inner);
+            --bc: var(--border);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:disabled + label {
+            cursor: not-allowed;
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:hover:not(:checked):not(:disabled) {
+            --bc: var(--border-hover);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:focus {
+            box-shadow: 0 0 0 var(--focus);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+            width: 21px;
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+            opacity: var(--o, 0);
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+            --o: 1;
+            }
+            .checkbox-wrapper-13 input[type=checkbox] + label {
+            display: inline-block;
+            vertical-align: middle;
+            cursor: pointer;
+            margin-left: 4px;
+            }
+        
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+            border-radius: 7px;
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+            width: 5px;
+            height: 9px;
+            border: 2px solid var(--active-inner);
+            border-top: 0;
+            border-left: 0;
+            left: 7px;
+            top: 4px;
+            transform: rotate(var(--r, 20deg));
+            }
+            .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+            --r: 43deg;
+            }
+        }
+        
+        .checkbox-wrapper-13 * {
+            box-sizing: inherit;
+        }
+        .checkbox-wrapper-13 *:before,
+        .checkbox-wrapper-13 *:after {
+            box-sizing: inherit;
+        }
+        </style>
+          
+          
+        <div>
+            <canvas id="hrpMortalityChart1"></canvas>
+        </div>
+        <script>
+            const data = {
+                labels: {{ x_labels | safe }},
+                datasets: [
+                            {
+                                label: {{ label9 | safe }}, 
+                                data: {{ data9 | safe }},
+                                borderColor: '#F60FE1',
+                            }
+                ]
+            };
+
+            const africaBox = document.querySelector('.africa');
+            africaBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'African Region')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label1 | safe }}, 
+                                        data: {{ data1 | safe }},
+                                        borderColor: '#4FF123',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'African Region') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const australiaBox = document.querySelector('.australia');
+            australiaBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'Australia')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label2 | safe }}, 
+                                        data: {{ data2 | safe }},
+                                        borderColor: '#F47D0D',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'Australia') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const chinaBox = document.querySelector('.china');
+            chinaBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'China')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label3 | safe }}, 
+                                        data: {{ data3 | safe }},
+                                        borderColor: '#DFF40D',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'China') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const egyptBox = document.querySelector('.egypt');
+            egyptBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'Egypt')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label4 | safe }}, 
+                                        data: {{ data4 | safe }},
+                                        borderColor: '#0DF4B5',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'Egypt') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const englandBox = document.querySelector('.england');
+            englandBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'England')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label5 | safe }}, 
+                                        data: {{ data5 | safe }},
+                                        borderColor: '#5D4BF5',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'England') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const franceBox = document.querySelector('.france');
+            franceBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'France')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label6 | safe }}, 
+                                        data: {{ data6 | safe }},
+                                        borderColor: '#958CDF',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'France') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const indiaBox = document.querySelector('.india');
+            indiaBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'India')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label7 | safe }}, 
+                                        data: {{ data7 | safe }},
+                                        borderColor: '#F3A04C',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'India') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const ukraineBox = document.querySelector('.ukraine');
+            ukraineBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'Ukraine')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label8 | safe }}, 
+                                        data: {{ data8 | safe }},
+                                        borderColor: '#87CEEB',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'Ukraine') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const united_statesBox = document.querySelector('.united_states');
+            united_statesBox.addEventListener('click', () => {
+                var present = false;
+                if(data.datasets.some(e => e.label == 'United States')) {
+                    present = true;
+                }
+                if(!present) {
+                    data.datasets.push({
+                                        label: {{ label9 | safe }}, 
+                                        data: {{ data9 | safe }},
+                                        borderColor: '#F60FE1',
+                                    });
+                    hrpMortalityChart.update();
+                } else {
+                    var index = 0;
+                    var strLength = data.datasets.length;
+                    for(var i = 0; i < strLength; i++){
+                        if(data.datasets[i].label == 'United States') {
+                            index = i;
+                            break;
+                        }
+                    }
+                    console.log(index);
+                    data.datasets.splice(index, 1);
+                    hrpMortalityChart.update();
+                }
+            });
+
+            const config = {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'World-wide Hypertension based Deaths'
+                    }
+                    }
+                },
+            };
+
+            var hrpMortalityChart = new Chart(
+                document.getElementById('hrpMortalityChart1'),
+                config
+            );
+        </script>
+
+      </section>
+
+
+
+      <section id="Results_content">
+        <h1>Results</h1>
+    
+        {% if result_valid %} 
+        <h2 id="prediction">Prediction for {{type}} risk was {{result_hypertension|yesno:"Positive,Negative"}}</h2> 
+        <h3 style="color: gray;">(Positive: {{type}} Risk is High | Negative: {{type}} Risk is low)</h3>
+            {% if result_hypertension %}
+                <script>
+                    document.getElementById("prediction").style = "color: red";
+                </script>
+            {% else %}
+                <script>
+                    document.getElementById("prediction").style = "color: green";
+                </script>
+            {% endif %}  
+        {% endif %}
+
+        <img src="static/assets/heatmap.png">
+
+        <form id="model-form" action="process" method="POST">
+            
+        </form>
+
+        <p>The prediction of the model was derived from an analysis of the features depicted in the chart above. The topmost features highlighted in the chart exerted the greatest influence on determining the model's prediction. As the features descend in the chart, their impact on the prediction gradually diminishes.</p>
+        <p>Change your model from the dropdown given below to determine the prediction using a different model. Please refer to the Area under the curve of Receiver Operating Characteristic to understand the behaviors of different models.</p>
+    
+        <img src="static/assets/roc_auc.png">
+
+    </section>
+    <!-- {% block content %} -->
+        
+    <!-- {% endblock %}   -->
+
+    <footer>
+        <p><img src="static/assets/CalStateFullerton-CMYK-R.jpg" alt="Csuf Logo" height="15px"> All Rights Reserved.</p>
+    </footer>
+    </div>
+    {% load static %}
+    <script src="static/javascripts/scale.fix.js"></script>
+
+    {% if result_valid %} 
+        <script>
+            if( document.getElementById("Results_link").classList.contains('inactiveLink') ) {
+                document.getElementById("Results_link").classList.remove('inactiveLink');
+                document.getElementById("Results_link").classList.add('activeLink')
+            }
+            clickResults();
+        </script>
+    {% else %}
+
+        <script>
+            if( document.getElementById("Results_link").classList.contains('activeLink') ) {
+                document.getElementById("Results_link").classList.remove('activeLink');
+                document.getElementById("Results_link").classList.add('inactiveLink')
+            }
+        </script> 
+    {% endif %}
+
+    {% if extracted_from_file %}
+        <script>
+            document.getElementById("age").value = {{ extracted_data.0 }};
+            document.getElementById("gender").value = "{{ extracted_data.1 }}";
+            document.getElementById("cp").value = {{ extracted_data.2 }};
+            document.getElementById("fbs").value = {{ extracted_data.3 }};
+            document.getElementById("trestbps").value = {{ extracted_data.4 }};
+            document.getElementById("thalach").value = {{ extracted_data.5 }};
+            document.getElementById("chol").value = {{ extracted_data.6 }};
+            document.getElementById("restecg").value = {{ extracted_data.7 }};
+            document.getElementById("exang").value = {{ extracted_data.8 }};
+            document.getElementById("oldpeak").value = {{ extracted_data.9 }};
+            document.getElementById("slope").value = {{ extracted_data.10 }};
+            document.getElementById("ca").value = {{ extracted_data.11 }};
+            document.getElementById("thal").value = {{ extracted_data.12 }};
+
+            document.getElementById("heartdisease").value = {{ extracted_data.13 }};
+            document.getElementById("married").value = {{ extracted_data.14 }};
+            document.getElementById("worktype").value = {{ extracted_data.15 }};
+            document.getElementById("residencytype").value = {{ extracted_data.16 }};
+            document.getElementById("glucose").value = {{ extracted_data.17 }};
+            document.getElementById("bmi").value = {{ extracted_data.18 }};
+            document.getElementById("smoking").value = {{ extracted_data.19 }};
+
+            document.getElementById("highchol").value = {{ extracted_data.20 }};
+            document.getElementById("cholcheck").value = {{ extracted_data.21 }};
+            document.getElementById("physactivity").value = {{ extracted_data.22 }};
+            document.getElementById("fruits").value = {{ extracted_data.23 }};
+            document.getElementById("veggies").value = {{ extracted_data.24 }};
+            document.getElementById("alcohol").value = {{ extracted_data.25 }};
+            document.getElementById("genhealth").value = {{ extracted_data.26 }};
+            document.getElementById("menhealth").value = {{ extracted_data.27 }};
+            document.getElementById("phyhealth").value = {{ extracted_data.28 }};
+            document.getElementById("diffwalk").value = {{ extracted_data.29 }};
+            document.getElementById("highBp").value = {{ extracted_data.30 }};
+        </script>
+    {% endif %}
+  </body>
+</html>
